@@ -1882,7 +1882,7 @@ impl ZoneInfo {
         }
 
         // for this event type, we have to look back at the corresponding enter event to extract the FD.
-        let enter_fdi: Option<u64> = self.get_enter_fdi(event);
+        let enter_fdi: Option<u64> = parsers::get_fdi(event);
 
         if let Some(e_fdi) = enter_fdi {
             self.with_mut_leader_fdlist_ctx(event, |fdlist| {
@@ -1910,7 +1910,7 @@ impl ZoneInfo {
         let mut overwrite_stale = false;
 
         // for this event type, we have to look back at the corresponding enter event to extract the FD.
-        let enter_fdi: Option<u64> = self.get_enter_fdi(event);
+        let enter_fdi: Option<u64> = parsers::get_fdi(event);
 
         // this event type also has the fd in the exit, so if we (for some reason)
         // could not snag it from the enter event, then grab it here as a fallback
@@ -2006,7 +2006,7 @@ impl ZoneInfo {
         }
 
         // for this event type, we have to look back at the corresponding enter event to extract the FD.
-        if let Some(enter_fdi) = self.get_enter_fdi(event) {
+        if let Some(enter_fdi) = parsers::get_fdi(event) {
             self.mark_fd_dropped(&event.thread_id, &enter_fdi);
         }
         Ok(())
@@ -2033,7 +2033,7 @@ impl ZoneInfo {
         }
 
         // reinsert the fd with the new fd number
-        self.get_enter_fdi(event).and_then(|enter_fdi| {
+        parsers::get_fdi(event).and_then(|enter_fdi| {
             self.with_mut_leader_fdlist_ctx(event, |fdlist| {
                 fdlist
                     .get(&enter_fdi)
@@ -2093,7 +2093,7 @@ impl ZoneInfo {
         };
 
         // set the thread cwd to the name of the fd fchdir was invoked aginst
-        self.get_enter_fdi(event).map(|enter_fdi| {
+        parsers::get_fdi(event).map(|enter_fdi| {
             self.with_mut_leader_fdlist_ctx(event, |fdlist| {
                 fdlist.get(&enter_fdi).map(|fdinfo| {
                     fdinfo
@@ -2171,7 +2171,7 @@ impl ZoneInfo {
         //  - dup3(): same as dup2()."
 
         let oldfdi = retval as u64;
-        let enterfdi = self.get_enter_fdi(event);
+        let enterfdi = parsers::get_fdi(event);
         self.with_mut_leader_ctx(event, |l_tinfo| {
             // for dup3, we only need to set/reset CLOEXEC
             if etype == event_codes::PPME_SYSCALL_DUP3_X {
@@ -2676,11 +2676,6 @@ impl ZoneInfo {
     fn set_socket_failed(fdinfo: &mut ZoneKernelFdInfo) {
         fdinfo.state_flags &= !(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_PENDING);
         fdinfo.state_flags |= FLAGS_CONNECTION_FAILED;
-    }
-
-    // Modern BPF driver only captures exit events, so extract FD directly from exit event
-    fn get_enter_fdi(&self, event: &ZoneKernelSyscallEvent) -> Option<u64> {
-        parsers::get_fdi(event)
     }
 
     fn mark_thread_dead(tinfo: &mut ZoneKernelThreadInfo) {
