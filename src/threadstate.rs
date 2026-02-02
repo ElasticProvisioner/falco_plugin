@@ -81,16 +81,11 @@ impl ZoneInfo {
     /// from event parameters and looks up the corresponding FD info.
     ///
     /// Returns None if the event doesn't use an FD or if the FD info is not found.
-    pub fn get_event_fdinfo(
-        &self,
-        event: &ZoneKernelSyscallEvent,
-    ) -> Option<ZoneKernelFdInfo> {
+    pub fn get_event_fdinfo(&self, event: &ZoneKernelSyscallEvent) -> Option<ZoneKernelFdInfo> {
         // Only exit events are captured by modern_bpf driver
         if parsers::has_fd(event) {
             parsers::get_fdi(event).and_then(|fdi| {
-                self.with_leader_fdlist_ctx(event, |fdlist| {
-                    fdlist.get(&fdi).cloned()
-                })
+                self.with_leader_fdlist_ctx(event, |fdlist| fdlist.get(&fdi).cloned())
             })
         } else {
             None
@@ -690,7 +685,9 @@ impl ZoneInfo {
                 // This is the old OPENAT format that required enter event data.
                 // Modern_bpf generates PPME_SYSCALL_OPENAT_2_X instead (see openat.bpf.c line 20).
                 // If we somehow receive this event type, we can't process it without enter events.
-                warn!("Received unsupported PPME_SYSCALL_OPENAT_X event (requires enter event data)");
+                warn!(
+                    "Received unsupported PPME_SYSCALL_OPENAT_X event (requires enter event data)"
+                );
                 return Ok(());
             }
             PPME_SYSCALL_OPENAT_2_X | PPME_SYSCALL_OPENAT2_X => {
@@ -1656,7 +1653,8 @@ impl ZoneInfo {
                 );
 
                 if tinfo.clone_ts != 0 {
-                    tinfo.exe_ino_ctime_duration_clone_ts = tinfo.clone_ts.wrapping_sub(tinfo.exe_ino_ctime);
+                    tinfo.exe_ino_ctime_duration_clone_ts =
+                        tinfo.clone_ts.wrapping_sub(tinfo.exe_ino_ctime);
                 }
 
                 if tinfo.pidns_init_start_ts != 0 && tinfo.exe_ino_ctime > tinfo.pidns_init_start_ts
@@ -3123,7 +3121,6 @@ impl ZoneInfo {
             }
         }
     }
-
 }
 
 impl ThreadState {
@@ -3495,7 +3492,6 @@ mod tests {
 
         assert_eq!(result, Some(100));
     }
-
 
     #[test]
     fn maybe_get_event_fdinfo_returns_none_no_thread() {

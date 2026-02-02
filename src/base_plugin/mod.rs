@@ -545,9 +545,10 @@ impl EderaPlugin {
 
         let zid = &context.decoded_evt.zone_id;
         if matches!(context.fdinfo, Cached::NotFetched) {
-            context.fdinfo = match self.threadstate.with_zoneinfo(zid, |zinfo| {
-                zinfo.get_event_fdinfo(&context.decoded_evt)
-            }) {
+            context.fdinfo = match self
+                .threadstate
+                .with_zoneinfo(zid, |zinfo| zinfo.get_event_fdinfo(&context.decoded_evt))
+            {
                 Some(t) => Cached::Found(t),
                 None => Cached::NotFound,
             };

@@ -195,14 +195,16 @@ pub fn get_fdi(event: &ZoneKernelSyscallEvent) -> Option<u64> {
 
     // For exit events (modern_bpf only captures these), search for the FD parameter
     // Special case: sendmmsg and recvmmsg have FD at position 1
-    let maybe_fd_loc: Option<usize> = if etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X {
-        Some(1)
-    } else {
-        // For other exit events, search for the PT_FD parameter
-        event.event_params
-            .iter()
-            .position(|param| param.param_type == param_type::PT_FD as u32)
-    };
+    let maybe_fd_loc: Option<usize> =
+        if etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X {
+            Some(1)
+        } else {
+            // For other exit events, search for the PT_FD parameter
+            event
+                .event_params
+                .iter()
+                .position(|param| param.param_type == param_type::PT_FD as u32)
+        };
 
     if let Some(loc) = maybe_fd_loc {
         let res = i64::from_ne_bytes(
